@@ -41,6 +41,7 @@ const mimeTypes: {[key: string]: string} = {
   app.get("/filteredimage", async (req, res) => {
     let imageUrl = req.query.image_url;
     
+    // regex pattern from https://stackoverflow.com/questions/169625/regex-to-check-if-valid-url-that-ends-in-jpg-png-or-gif
     if(!imageUrl || imageUrl.match('(http(s?):)([/|.|\\w|\\s|-])*\\.(?:jpg|jpeg|gif|png)').length === 0) {
       res.status(400).end("You must include a valid image url.")
       return;
@@ -57,7 +58,7 @@ const mimeTypes: {[key: string]: string} = {
       });
       readStream.on('error', function () {
         res.set('Content-Type', 'text/plain');
-        res.status(404).end('Error loading file.');
+        res.status(400).end('Error loading file.');
       });
       readStream.on('end', function() {
         deleteLocalFiles([resultImagePath]);
@@ -65,7 +66,7 @@ const mimeTypes: {[key: string]: string} = {
     }
     catch (e) {
       res.set('Content-Type', 'text/plain');
-      res.status(404).end('Error loading file.');
+      res.status(400).end('Error loading file.');
     }
   });
   
