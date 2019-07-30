@@ -1,6 +1,16 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import {filterImageFromURL, deleteLocalFiles} from './util/util';
+import * as path from "path";
+import * as fs from "fs";
+
+const mimeTypes: {[key: string]: string} = {
+  gif: 'image/gif',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  svg: 'image/svg+xml'
+};
 
 (async () => {
 
@@ -28,7 +38,37 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
   //   the filtered image file [!!TIP res.sendFile(filteredpath); might be useful]
 
   /**************************************************************************** */
-
+  app.get("/filteredimage", async (req, res) => {
+    let imageUrl = req.query.image_url;
+    
+    if(!imageUrl || imageUrl.match('(http(s?):)([/|.|\\w|\\s|-])*\\.(?:jpg|jpeg|gif|png)').length === 0) {
+      res.status(400).end("You must include a valid image url.")
+      return;
+    }
+    
+    try {
+      let resultImagePath = await filterImageFromURL(imageUrl);
+  
+      let type: string = mimeTypes[path.extname(resultImagePath).slice(1)] || 'text/plain';
+      let readStream = fs.createReadStream(resultImagePath);
+      readStream.on('open', function () {
+        res.set('Content-Type', type);
+        readStream.pipe(res);
+      });
+      readStream.on('error', function () {
+        res.set('Content-Type', 'text/plain');
+        res.status(404).end('Error loading file.');
+      });
+      readStream.on('end', function() {
+        deleteLocalFiles([resultImagePath]);
+      });
+    }
+    catch (e) {
+      res.set('Content-Type', 'text/plain');
+      res.status(404).end('Error loading file.');
+    }
+  });
+  
   //! END @TODO1
   
   // Root Endpoint
